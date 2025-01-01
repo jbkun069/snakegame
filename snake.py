@@ -12,7 +12,6 @@ GRID_SIZE = 20
 GRID_WIDTH = WINDOW_WIDTH // GRID_SIZE
 GRID_HEIGHT = WINDOW_HEIGHT // GRID_SIZE
 FONT_SIZE = 32
-GAME_SPEED = 8  # Reduced from 10 to 8 for slower movement
 HIGH_SCORE_FILE = "high_score.txt"
 
 # Colors
@@ -36,8 +35,8 @@ class Snake:
     def move(self):
         head = self.body[0]
         new_head = (head[0] + self.direction[0], head[1] + self.direction[1])
-        
-        # Check for collisions with walls
+
+        # Check for collisions with walls or itself
         if (new_head[0] < 0 or new_head[0] >= GRID_WIDTH or 
             new_head[1] < 0 or new_head[1] >= GRID_HEIGHT or 
             new_head in self.body[1:]):
@@ -72,25 +71,43 @@ def save_high_score(score):
     with open(HIGH_SCORE_FILE, 'w') as file:
         file.write(str(score))
 
+def generate_food(snake_body):
+    while True:
+        food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+        if food not in snake_body:
+            return food
+
+def get_initial_speed():
+    try:
+        speed = int(input("Enter the initial game speed (1-20, default is 8): "))
+        if 1 <= speed <= 20:
+            return speed
+        else:
+            print("Invalid input. Using default speed.")
+    except ValueError:
+        print("Invalid input. Using default speed.")
+    return 8
+
 def main():
     clock = pygame.time.Clock()
     snake = Snake()
-    food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+    food = generate_food(snake.body)
     running = True
     game_active = False
     paused = False
     score = 0
     high_score = load_high_score()
+    game_speed = get_initial_speed()
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and not paused:
+                if event.key == pygame.K_SPACE and not game_active:
                     # Reset and start new game
                     snake.reset()
-                    food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+                    food = generate_food(snake.body)
                     score = 0
                     game_active = True
                 elif event.key == pygame.K_p and game_active:
@@ -106,6 +123,10 @@ def main():
                         snake.change_direction((-1, 0))
                     elif event.key == pygame.K_RIGHT:
                         snake.change_direction((1, 0))
+                    elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
+                        game_speed += 1
+                    elif event.key == pygame.K_MINUS and game_speed > 1:
+                        game_speed -= 1
 
         screen.fill(BLACK)
 
@@ -122,29 +143,29 @@ def main():
             if snake.body[0] == food:
                 snake.grow = True
                 score += 10
-                food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
-                while food in snake.body:
-                    food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+                food = generate_food(snake.body)
 
             # Draw food and snake
             pygame.draw.rect(screen, RED, (food[0] * GRID_SIZE, food[1] * GRID_SIZE, 
-                                         GRID_SIZE - 2, GRID_SIZE - 2))
+                                           GRID_SIZE - 2, GRID_SIZE - 2))
             
             for segment in snake.body:
                 pygame.draw.rect(screen, GREEN, (segment[0] * GRID_SIZE, segment[1] * GRID_SIZE, 
-                                               GRID_SIZE - 2, GRID_SIZE - 2))
+                                                 GRID_SIZE - 2, GRID_SIZE - 2))
 
         # Draw scores and messages
         score_text = font.render(f'Score: {score}', True, WHITE)
         high_score_text = font.render(f'High Score: {high_score}', True, WHITE)
+        speed_text = font.render(f'Speed: {game_speed}', True, WHITE)
         screen.blit(score_text, (10, 10))
         screen.blit(high_score_text, (WINDOW_WIDTH - high_score_text.get_width() - 10, 10))
+        screen.blit(speed_text, (10, FONT_SIZE + 10))
 
         if not game_active:
-            game_over_text = font.render('Press SPACE to Start', True, WHITE)
-            text_rect = game_over_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
-            screen.blit(game_over_text, text_rect)
             if score > 0:
+                game_over_text = font.render('Game Over! Press SPACE to Restart', True, WHITE)
+                text_rect = game_over_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
+                screen.blit(game_over_text, text_rect)
                 final_score_text = font.render(f'Final Score: {score}', True, WHITE)
                 final_rect = final_score_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 40))
                 screen.blit(final_score_text, final_rect)
@@ -155,11 +176,10 @@ def main():
             screen.blit(pause_text, pause_rect)
 
         pygame.display.flip()
-        clock.tick(GAME_SPEED)
+        clock.tick(game_speed)
 
     # Cleanup
     pygame.quit()
 
 if __name__ == '__main__':
     main()
-
