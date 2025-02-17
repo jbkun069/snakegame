@@ -53,16 +53,8 @@ def generate_food(snake_body):
     return None  # Return None if no valid position is found
 
 def get_initial_speed():
-    """Get the initial game speed from the user."""
-    while True:
-        try:
-            speed = int(input("Enter the initial game speed (1-20, default is 8): "))
-            if 1 <= speed <= 20:
-                return speed
-            else:
-                print("Invalid input. Please enter a number between 1 and 20.")
-        except ValueError:
-            print("Invalid input. Please enter a valid number.")
+    """Get the initial game speed."""
+    return 8  # Default speed
 
 def draw_grid():
     """Draw the grid on the window."""
@@ -78,10 +70,17 @@ def draw_snake(snake_body):
 
 def draw_food(food_position):
     """Draw the food on the window."""
-    pygame.draw.rect(window, RED, (food_position[0] * CELL_SIZE, food_position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    if food_position:
+        pygame.draw.rect(window, RED, (food_position[0] * CELL_SIZE, food_position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 def main():
     """Main function to run the Snake game."""
+    snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
+    direction = (1, 0)
+    food = generate_food(snake_body)
+    if food is None:
+        print("Error: Could not generate food position")
+        return
     snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
     direction = (1, 0)
     food = generate_food(snake_body)
