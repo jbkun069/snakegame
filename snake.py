@@ -54,14 +54,11 @@ def generate_food(snake_body):
 
 def get_initial_speed():
     """Get the initial game speed."""
-    return 8  # Default speed
+    return 1  # Default speed
 
-def draw_grid():
-    """Draw the grid on the window."""
-    for x in range(0, WINDOW_WIDTH, CELL_SIZE):
-        pygame.draw.line(window, WHITE, (x, 0), (x, WINDOW_HEIGHT))
-    for y in range(0, WINDOW_HEIGHT, CELL_SIZE):
-        pygame.draw.line(window, WHITE, (0, y), (WINDOW_WIDTH, y))
+def draw_background():
+    """Draw a solid black background."""
+    window.fill(BLACK)
 
 def draw_snake(snake_body):
     """Draw the snake on the window."""
@@ -73,21 +70,50 @@ def draw_food(food_position):
     if food_position:
         pygame.draw.rect(window, RED, (food_position[0] * CELL_SIZE, food_position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
+def select_speed():
+    """Let user select initial game speed."""
+    speed = 1
+    selecting = True
+    font = pygame.font.Font(None, 36)
+    
+    while selecting:
+        window.fill(BLACK)
+        text = font.render(f"Select Speed: {speed} (Use UP/DOWN, ENTER to confirm)", True, WHITE)
+        text_rect = text.get_rect(center=(WINDOW_WIDTH/2, WINDOW_HEIGHT/2))
+        window.blit(text, text_rect)
+        pygame.display.flip()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return None
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    speed = min(speed + 1, 20)
+                elif event.key == pygame.K_DOWN:
+                    speed = max(speed - 1, 1)
+                elif event.key == pygame.K_RETURN:
+                    selecting = False
+    
+    return speed
+
 def main():
     """Main function to run the Snake game."""
+    # Get initial speed from user
+    game_speed = select_speed()
+    if game_speed is None:  # User closed window during speed selection
+        return
+        
     snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
     direction = (1, 0)
     food = generate_food(snake_body)
     if food is None:
         print("Error: Could not generate food position")
         return
-    snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
-    direction = (1, 0)
-    food = generate_food(snake_body)
-    game_speed = get_initial_speed()
+    
     score = 0
     high_score = load_high_score()
-
+    
     running = True
     while running:
         for event in pygame.event.get():
@@ -130,13 +156,12 @@ def main():
 
         # Draw everything
         window.fill(BLACK)
-        draw_grid()
         draw_snake(snake_body)
         draw_food(food)
         pygame.display.flip()
 
-        # Control the game speed
-        clock.tick(10 + game_speed)
+        # Control the game speed (modified to use base speed of 5)
+        clock.tick(5 + game_speed * 2)
 
     # Save high score when the game ends
     save_high_score(high_score)
