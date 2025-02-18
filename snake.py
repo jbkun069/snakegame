@@ -24,45 +24,36 @@ clock = pygame.time.Clock()
 
 # Load assets
 
-try:
-    FOOD_IMAGE = pygame.image.load(os.path.join('assets', 'apple.png'))
-    FOOD_IMAGE = pygame.transform.scale(FOOD_IMAGE, (CELL_SIZE, CELL_SIZE))
-except:
-    # Create a red square as fallback
-    FOOD_IMAGE = pygame.Surface((CELL_SIZE, CELL_SIZE))
-    FOOD_IMAGE.fill(RED)
+def load_and_scale_image(path, size):
+    """Helper function to load and scale images with error handling."""
+    try:
+        return pygame.transform.scale(pygame.image.load(path), (size, size))
+    except:
+        surface = pygame.Surface((size, size))
+        surface.fill(GREEN if 'head' in path or 'body' in path or 'tail' in path else RED)
+        return surface
 
-# Snake head images
-HEAD_IMAGES = {}
-try:
-    HEAD_IMAGES = {
-        'up': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_up.png')), (CELL_SIZE, CELL_SIZE)),
-        'down': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_down.png')), (CELL_SIZE, CELL_SIZE)),
-        'left': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_left.png')), (CELL_SIZE, CELL_SIZE)),
-        'right': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_right.png')), (CELL_SIZE, CELL_SIZE))
-    }
-except:
-    # Create green squares as fallback
-    default_head = pygame.Surface((CELL_SIZE, CELL_SIZE))
-    default_head.fill(GREEN)
-    HEAD_IMAGES = {dir: default_head for dir in ['up', 'down', 'left', 'right']}
+# Load food image
+FOOD_IMAGE = load_and_scale_image(os.path.join('assets', 'apple.png'), CELL_SIZE)
 
-# Snake body images
-BODY_IMAGES = {
-    'horizontal': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_horizontal.png')), (CELL_SIZE, CELL_SIZE)),
-    'vertical': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_vertical.png')), (CELL_SIZE, CELL_SIZE)),
-    'bottomleft': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_bottomleft.png')), (CELL_SIZE, CELL_SIZE)),
-    'bottomright': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_bottomright.png')), (CELL_SIZE, CELL_SIZE)),
-    'topleft': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_topleft.png')), (CELL_SIZE, CELL_SIZE)),
-    'topright': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_topright.png')), (CELL_SIZE, CELL_SIZE))
+# Load head images
+HEAD_DIRECTIONS = ['up', 'down', 'left', 'right']
+HEAD_IMAGES = {
+    direction: load_and_scale_image(os.path.join('assets', f'head_{direction}.png'), CELL_SIZE)
+    for direction in HEAD_DIRECTIONS
 }
 
-# Snake tail images
+# Load body images
+BODY_TYPES = ['horizontal', 'vertical', 'bottomleft', 'bottomright', 'topleft', 'topright']
+BODY_IMAGES = {
+    body_type: load_and_scale_image(os.path.join('assets', f'body_{body_type}.png'), CELL_SIZE)
+    for body_type in BODY_TYPES
+}
+
+# Load tail images
 TAIL_IMAGES = {
-    'up': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_up.png')), (CELL_SIZE, CELL_SIZE)),
-    'down': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_down.png')), (CELL_SIZE, CELL_SIZE)),
-    'left': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_left.png')), (CELL_SIZE, CELL_SIZE)),
-    'right': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_right.png')), (CELL_SIZE, CELL_SIZE))
+    direction: load_and_scale_image(os.path.join('assets', f'tail_{direction}.png'), CELL_SIZE)
+    for direction in HEAD_DIRECTIONS
 }
 
 # Functions
