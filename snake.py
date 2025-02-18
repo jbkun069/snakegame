@@ -26,6 +26,32 @@ clock = pygame.time.Clock()
 FOOD_IMAGE = pygame.image.load(os.path.join('assets', 'apple.png'))
 FOOD_IMAGE = pygame.transform.scale(FOOD_IMAGE, (CELL_SIZE, CELL_SIZE))
 
+# Snake head images
+HEAD_IMAGES = {
+    'up': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_up.png')), (CELL_SIZE, CELL_SIZE)),
+    'down': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_down.png')), (CELL_SIZE, CELL_SIZE)),
+    'left': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_left.png')), (CELL_SIZE, CELL_SIZE)),
+    'right': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'head_right.png')), (CELL_SIZE, CELL_SIZE))
+}
+
+# Snake body images
+BODY_IMAGES = {
+    'horizontal': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_horizontal.png')), (CELL_SIZE, CELL_SIZE)),
+    'vertical': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_vertical.png')), (CELL_SIZE, CELL_SIZE)),
+    'bottomleft': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_bottomleft.png')), (CELL_SIZE, CELL_SIZE)),
+    'bottomright': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_bottomright.png')), (CELL_SIZE, CELL_SIZE)),
+    'topleft': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_topleft.png')), (CELL_SIZE, CELL_SIZE)),
+    'topright': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'body_topright.png')), (CELL_SIZE, CELL_SIZE))
+}
+
+# Snake tail images
+TAIL_IMAGES = {
+    'up': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_up.png')), (CELL_SIZE, CELL_SIZE)),
+    'down': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_down.png')), (CELL_SIZE, CELL_SIZE)),
+    'left': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_left.png')), (CELL_SIZE, CELL_SIZE)),
+    'right': pygame.transform.scale(pygame.image.load(os.path.join('assets', 'tail_right.png')), (CELL_SIZE, CELL_SIZE))
+}
+
 # Functions
 def load_high_score():
     """Load the high score from a file."""
@@ -64,10 +90,61 @@ def draw_background():
     """Draw a solid black background."""
     window.fill(BLACK)
 
-def draw_snake(snake_body):
-    """Draw the snake on the window."""
-    for segment in snake_body:
-        pygame.draw.rect(window, GREEN, (segment[0] * CELL_SIZE, segment[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+def get_direction_name(direction):
+    """Convert direction tuple to string name."""
+    if direction == (0, -1): return 'up'
+    if direction == (0, 1): return 'down'
+    if direction == (-1, 0): return 'left'
+    if direction == (1, 0): return 'right'
+    return 'right'  # default
+
+def get_segment_direction(prev_pos, curr_pos, next_pos):
+    """Determine the appropriate body segment type based on neighboring positions."""
+    if not prev_pos or not next_pos:  # For head or tail
+        return 'horizontal'
+        
+    dx1 = curr_pos[0] - prev_pos[0]
+    dy1 = curr_pos[1] - prev_pos[1]
+    dx2 = next_pos[0] - curr_pos[0]
+    dy2 = next_pos[1] - curr_pos[1]
+    
+    # Straight segments
+    if dx1 == dx2 and dx1 != 0: return 'horizontal'
+    if dy1 == dy2 and dy1 != 0: return 'vertical'
+    
+    # Corner segments
+    if (dx1 == 1 and dy2 == 1) or (dy1 == 1 and dx2 == 1): return 'topleft'
+    if (dx1 == -1 and dy2 == 1) or (dy1 == 1 and dx2 == -1): return 'topright'
+    if (dx1 == 1 and dy2 == -1) or (dy1 == -1 and dx2 == 1): return 'bottomleft'
+    if (dx1 == -1 and dy2 == -1) or (dy1 == -1 and dx2 == -1): return 'bottomright'
+    
+    return 'horizontal'  # default
+
+def draw_snake(snake_body, direction):
+    """Draw the snake using appropriate segment images."""
+    if not snake_body:
+        return
+
+    # Draw head
+    dir_name = get_direction_name(direction)
+    window.blit(HEAD_IMAGES[dir_name], (snake_body[0][0] * CELL_SIZE, snake_body[0][1] * CELL_SIZE))
+    
+    # Draw body segments
+    for i in range(1, len(snake_body) - 1):
+        prev_pos = snake_body[i-1]
+        curr_pos = snake_body[i]
+        next_pos = snake_body[i+1]
+        segment_type = get_segment_direction(prev_pos, curr_pos, next_pos)
+        window.blit(BODY_IMAGES[segment_type], (curr_pos[0] * CELL_SIZE, curr_pos[1] * CELL_SIZE))
+    
+    # Draw tail
+    if len(snake_body) > 1:
+        tail_pos = snake_body[-1]
+        prev_tail_pos = snake_body[-2]
+        dx = tail_pos[0] - prev_tail_pos[0]
+        dy = tail_pos[1] - prev_tail_pos[1]
+        tail_dir = get_direction_name((dx, dy))
+        window.blit(TAIL_IMAGES[tail_dir], (tail_pos[0] * CELL_SIZE, tail_pos[1] * CELL_SIZE))
 
 def draw_food(food_position):
     """Draw the food on the window."""
@@ -160,7 +237,7 @@ def main():
 
         # Draw everything
         window.fill(BLACK)
-        draw_snake(snake_body)
+        draw_snake(snake_body, direction)  # Pass direction to draw_snake
         draw_food(food)
         pygame.display.flip()
 
