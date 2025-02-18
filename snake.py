@@ -22,6 +22,10 @@ window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Snake Game")
 clock = pygame.time.Clock()
 
+# Load assets
+FOOD_IMAGE = pygame.image.load(os.path.join('assets', 'apple.png'))
+FOOD_IMAGE = pygame.transform.scale(FOOD_IMAGE, (CELL_SIZE, CELL_SIZE))
+
 # Functions
 def load_high_score():
     """Load the high score from a file."""
@@ -68,7 +72,7 @@ def draw_snake(snake_body):
 def draw_food(food_position):
     """Draw the food on the window."""
     if food_position:
-        pygame.draw.rect(window, RED, (food_position[0] * CELL_SIZE, food_position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+        window.blit(FOOD_IMAGE, (food_position[0] * CELL_SIZE, food_position[1] * CELL_SIZE))
 
 def select_speed():
     """Let user select initial game speed."""
