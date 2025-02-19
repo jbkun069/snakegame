@@ -15,6 +15,8 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
+GRASS_GREEN = (34, 139, 34)
+GRASS_GREEN_DARK = (0, 100, 0)
 
 # Initialize Pygame
 pygame.init()
@@ -56,6 +58,28 @@ TAIL_IMAGES = {
     for direction in HEAD_DIRECTIONS
 }
 
+# Create grass pattern
+def create_grass_tile():
+    """Create a grass pattern tile."""
+    tile = pygame.Surface((CELL_SIZE, CELL_SIZE))
+    tile.fill(GRASS_GREEN)
+    
+    # Add random darker spots for texture
+    for _ in range(4):
+        spot_size = random.randint(4, 8)
+        x = random.randint(0, CELL_SIZE - spot_size)
+        y = random.randint(0, CELL_SIZE - spot_size)
+        pygame.draw.circle(tile, GRASS_GREEN_DARK, (x, y), spot_size)
+    
+    return tile
+
+# Create and store grass pattern
+GRASS_TILE = create_grass_tile()
+GRASS_PATTERN = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+for x in range(0, WINDOW_WIDTH, CELL_SIZE):
+    for y in range(0, WINDOW_HEIGHT, CELL_SIZE):
+        GRASS_PATTERN.blit(GRASS_TILE, (x, y))
+
 # Functions
 def load_high_score():
     """Load the high score from a file."""
@@ -91,8 +115,8 @@ def get_initial_speed():
     return 1  # Default speed
 
 def draw_background():
-    """Draw a solid black background."""
-    window.fill(BLACK)
+    """Draw the grass pattern background."""
+    window.blit(GRASS_PATTERN, (0, 0))
 
 def get_direction_name(direction):
     """Convert direction tuple to string name."""
@@ -240,7 +264,7 @@ def main():
             snake_body.pop()  # Remove the tail segment
 
         # Draw everything
-        window.fill(BLACK)
+        draw_background()  # Draw grass pattern first
         draw_snake(snake_body, direction)  # Pass direction to draw_snake
         draw_food(food)
         pygame.display.flip()
