@@ -167,42 +167,35 @@ def draw_score(score, high_score):
     window.blit(score_text, (10, 10))
     window.blit(high_score_text, (10, 50))
 
-def select_speed():
-    """Let user select initial game speed."""
-    speed = 1
-    selecting = True
-    font = pygame.font.Font(None, 36)
-    while selecting:
-        window.fill(BLACK)
-        text = font.render(f"Select Speed: {speed} (Use UP/DOWN, ENTER to confirm)", True, WHITE)
-        text_rect = text.get_rect(center=(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
-        window.blit(text, text_rect)
-        pygame.display.flip()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return None
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    speed = min(speed + 1, 20)
-                elif event.key == pygame.K_DOWN:
-                    speed = max(speed - 1, 1)
-                elif event.key == pygame.K_RETURN:
-                    selecting = False
-    return speed
-
 def game_over_screen(score, high_score):
-    """Display game over screen and wait for restart."""
+    """Display game over screen with restart and quit options."""
     font = pygame.font.Font(None, 72)
+    button_font = pygame.font.Font(None, 48)
+    
+    # Text
     game_over_text = font.render("Game Over", True, RED)
     score_text = font.render(f"Score: {score}", True, WHITE)
     high_score_text = font.render(f"High Score: {high_score}", True, WHITE)
     restart_text = font.render("Press R to Restart", True, WHITE)
-    window.blit(game_over_text, (WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 2 - 150))
-    window.blit(score_text, (WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 - 50))
-    window.blit(high_score_text, (WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 2 + 50))
-    window.blit(restart_text, (WINDOW_WIDTH / 2 - 200, WINDOW_HEIGHT / 2 + 150))
+    
+    # Quit button
+    button_width, button_height = 200, 60
+    button_x = WINDOW_WIDTH // 2 - button_width // 2
+    button_y = WINDOW_HEIGHT // 2 + 250
+    button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+    quit_text = button_font.render("Quit", True, WHITE)
+    quit_text_rect = quit_text.get_rect(center=button_rect.center)
+    
+    # Draw everything
+    window.blit(game_over_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 - 150))
+    window.blit(score_text, (WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 - 50))
+    window.blit(high_score_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 + 50))
+    window.blit(restart_text, (WINDOW_WIDTH // 2 - 200, WINDOW_HEIGHT // 2 + 150))
+    pygame.draw.rect(window, RED, button_rect)
+    window.blit(quit_text, quit_text_rect)
     pygame.display.flip()
+    
+    # Event loop
     waiting = True
     while waiting:
         for event in pygame.event.get():
@@ -211,14 +204,15 @@ def game_over_screen(score, high_score):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     return True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if button_rect.collidepoint(event.pos):
+                    return False
     return False
 
 def main():
     """Main function to run the Snake game."""
     while True:
-        game_speed = select_speed()
-        if game_speed is None:
-            return
+        game_speed = 2  # Fixed initial speed (adjustable in-game)
         snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
         direction = (1, 0)
         food = generate_food(snake_body)
