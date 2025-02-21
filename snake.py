@@ -1,4 +1,5 @@
 import pygame  # type: ignore
+import pygame_gui  # Added for UI enhancements
 import random
 import os
 
@@ -18,14 +19,17 @@ RED = (255, 0, 0)
 GRASS_GREEN = (34, 139, 34)
 GRASS_GREEN_DARK = (0, 100, 0)
 GRID_COLOR = (200, 200, 200)
-GOLD = (255, 215, 0)  # For golden apple
-FLASH_COLOR = (255, 255, 255, 100)  # Semi-transparent white for flash effect
+GOLD = (255, 215, 0)
+FLASH_COLOR = (255, 255, 255, 100)
 
 # Initialize Pygame
 pygame.init()
 window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Snake Game")
 clock = pygame.time.Clock()
+
+# Initialize Pygame GUI Manager
+ui_manager = pygame_gui.UIManager((WINDOW_WIDTH, WINDOW_HEIGHT))
 
 # Load assets
 def load_and_scale_image(path, size):
@@ -115,7 +119,7 @@ def generate_food(snake_body):
     while attempts < max_attempts:
         food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
         if food not in snake_body:
-            is_golden = random.random() < 0.1  # 10% chance for golden apple
+            is_golden = random.random() < 0.1
             return (food, is_golden)
         attempts += 1
     return None
@@ -195,13 +199,18 @@ def flash_screen():
     flash_surface.fill(FLASH_COLOR)
     window.blit(flash_surface, (0, 0))
     pygame.display.flip()
-    pygame.time.wait(50)  # Brief flash duration
+    pygame.time.wait(50)
 
 def start_screen():
-    """Display the start screen with instructions and start button."""
-    font = pygame.font.Font(None, 72)
-    button_font = pygame.font.Font(None, 48)
-    title_text = font.render("Snake Game", True, WHITE)
+    """Display the start screen with Pygame GUI."""
+    ui_manager.clear_and_reset()  # Reset UI for fresh start
+    
+    pygame_gui.elements.UILabel(
+        relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 150, 50), (300, 50)),
+        text="Snake Game",
+        manager=ui_manager
+    )
+    
     instructions = [
         "Use arrow keys to move",
         "Press + or = to increase speed",
@@ -209,71 +218,91 @@ def start_screen():
         "Press P to pause/resume",
         "Eat apples (1 pt) or golden apples (5 pts)"
     ]
-    instruction_texts = [button_font.render(text, True, WHITE) for text in instructions]
+    for i, text in enumerate(instructions):
+        pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 200, 150 + i * 40), (400, 30)),
+            text=text,
+            manager=ui_manager
+        )
     
-    button_width, button_height = 200, 60
-    button_x = WINDOW_WIDTH // 2 - button_width // 2
-    button_y = WINDOW_HEIGHT // 2 + 100
-    button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
-    start_text = button_font.render("Start", True, WHITE)
-    start_text_rect = start_text.get_rect(center=button_rect.center)
+    start_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 + 100), (200, 60)),
+        text="Start",
+        manager=ui_manager
+    )
     
     window.fill(BLACK)
-    window.blit(title_text, (WINDOW_WIDTH // 2 - 150, 50))
-    for i, text in enumerate(instruction_texts):
-        window.blit(text, (WINDOW_WIDTH // 2 - 200, 150 + i * 40))
-    pygame.draw.rect(window, GREEN, button_rect)
-    window.blit(start_text, start_text_rect)
-    pygame.display.flip()
-    
+    time_delta = clock.tick(60) / 1000.0
     waiting = True
     while waiting:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-            if event.type == pygame.KEYDOWN or (event.type == pygame.MOUSEBUTTONDOWN and button_rect.collidepoint(event.pos)):
-                waiting = False
+            if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == start_button:
+                    waiting = False
+            ui_manager.process_events(event)
+        
+        ui_manager.update(time_delta)
+        window.fill(BLACK)  # Redraw background each frame
+        ui_manager.draw_ui(window)
+        pygame.display.flip()
 
 def game_over_screen(score, high_score):
-    """Display game over screen with restart and quit options."""
-    font = pygame.font.Font(None, 72)
-    button_font = pygame.font.Font(None, 48)
+    """Display game over screen with Pygame GUI buttons."""
+    ui_manager.clear_and_reset()  # Reset UI for game over screen
     
-    game_over_text = font.render("Game Over", True, RED)
-    score_text = font.render(f"Score: {score}", True, WHITE)
-    high_score_text = font.render(f"High Score: {high_score}", True, WHITE)
-    restart_text = font.render("Press R to Restart", True, WHITE)
+    pygame_gui.elements.UILabel(
+        relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 - 150), (300, 50)),
+        text="Game Over",
+        manager=ui_manager,
+        object_id="#game_over_label"  # Custom ID for styling if needed
+    )
     
-    button_width, button_height = 200, 60
-    button_x = WINDOW_WIDTH // 2 - button_width // 2
-    button_y = WINDOW_HEIGHT // 2 + 250
-    button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
-    quit_text = button_font.render("Quit", True, WHITE)
-    quit_text_rect = quit_text.get_rect(center=button_rect.center)
+    pygame_gui.elements.UILabel(
+        relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 - 50), (200, 40)),
+        text=f"Score: {score}",
+        manager=ui_manager
+    )
     
+    pygame_gui.elements.UILabel(
+        relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 + 10), (300, 40)),
+        text=f"High Score: {high_score}",
+        manager=ui_manager
+    )
+    
+    restart_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 210, WINDOW_HEIGHT // 2 + 100), (200, 60)),
+        text="Restart",
+        manager=ui_manager
+    )
+    
+    quit_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((WINDOW_WIDTH // 2 + 10, WINDOW_HEIGHT // 2 + 100), (200, 60)),
+        text="Quit",
+        manager=ui_manager
+    )
+    
+    window.fill(BLACK)
+    time_delta = clock.tick(60) / 1000.0
     waiting = True
     while waiting:
-        mouse_pos = pygame.mouse.get_pos()
-        button_color = (200, 0, 0) if button_rect.collidepoint(mouse_pos) else RED  # Hover effect
-        
-        window.blit(game_over_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 - 150))
-        window.blit(score_text, (WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 - 50))
-        window.blit(high_score_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 + 50))
-        window.blit(restart_text, (WINDOW_WIDTH // 2 - 200, WINDOW_HEIGHT // 2 + 150))
-        pygame.draw.rect(window, button_color, button_rect)
-        window.blit(quit_text, quit_text_rect)
-        pygame.display.flip()
-        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
+            if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == restart_button:
                     return True
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if button_rect.collidepoint(event.pos):
+                if event.ui_element == quit_button:
                     return False
+            ui_manager.process_events(event)
+        
+        ui_manager.update(time_delta)
+        window.fill(BLACK)  # Redraw background each frame
+        ui_manager.draw_ui(window)
+        pygame.display.flip()
+    return False
 
 def main():
     """Main function to run the Snake game."""
@@ -282,7 +311,7 @@ def main():
         game_speed = 1
         snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
         direction = (1, 0)
-        next_direction = direction  # Input buffer for smoother movement
+        next_direction = direction
         food = generate_food(snake_body)
         if food is None:
             print("Error: Could not generate food position")
@@ -329,7 +358,7 @@ def main():
                 running = False
             snake_body.insert(0, new_head)
             if food and new_head == food[0]:
-                score += 5 if food[1] else 1  # Golden apple = 5 points, regular = 1
+                score += 5 if food[1] else 1
                 if EAT_SOUND:
                     EAT_SOUND.play()
                 flash_screen()
