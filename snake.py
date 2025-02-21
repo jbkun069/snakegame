@@ -17,7 +17,9 @@ GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 GRASS_GREEN = (34, 139, 34)
 GRASS_GREEN_DARK = (0, 100, 0)
-GRID_COLOR = (200, 200, 200)  # Light gray for grid lines
+GRID_COLOR = (200, 200, 200)
+GOLD = (255, 215, 0)  # For golden apple
+FLASH_COLOR = (255, 255, 255, 100)  # Semi-transparent white for flash effect
 
 # Initialize Pygame
 pygame.init()
@@ -36,8 +38,9 @@ def load_and_scale_image(path, size):
         surface.fill(GREEN if 'head' in path or 'body' in path or 'tail' in path else RED)
         return surface
 
-# Load food image
+# Load food images
 FOOD_IMAGE = load_and_scale_image(os.path.join('assets', 'apple.png'), CELL_SIZE)
+GOLDEN_FOOD_IMAGE = load_and_scale_image(os.path.join('assets', 'golden_apple.png'), CELL_SIZE)
 
 # Load head images
 HEAD_DIRECTIONS = ['up', 'down', 'left', 'right']
@@ -112,14 +115,14 @@ def generate_food(snake_body):
     while attempts < max_attempts:
         food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
         if food not in snake_body:
-            return food
+            is_golden = random.random() < 0.1  # 10% chance for golden apple
+            return (food, is_golden)
         attempts += 1
     return None
 
 def draw_background():
     """Draw the grass pattern background with grid overlay."""
     window.blit(GRASS_PATTERN, (0, 0))
-    # Draw grid lines
     for x in range(0, WINDOW_WIDTH, CELL_SIZE):
         pygame.draw.line(window, GRID_COLOR, (x, 0), (x, WINDOW_HEIGHT))
     for y in range(0, WINDOW_HEIGHT, CELL_SIZE):
@@ -131,7 +134,7 @@ def get_direction_name(direction):
     if direction == (0, 1): return 'down'
     if direction == (-1, 0): return 'left'
     if direction == (1, 0): return 'right'
-    return 'right'  # default
+    return 'right'
 
 def get_segment_direction(prev_pos, curr_pos, next_pos):
     """Determine the appropriate body segment type based on neighboring positions."""
@@ -169,18 +172,30 @@ def draw_snake(snake_body, direction):
         tail_dir = get_direction_name((dx, dy))
         window.blit(TAIL_IMAGES[tail_dir], (tail_pos[0] * CELL_SIZE, tail_pos[1] * CELL_SIZE))
 
-def draw_food(food_position):
+def draw_food(food):
     """Draw the food on the window."""
-    if food_position:
-        window.blit(FOOD_IMAGE, (food_position[0] * CELL_SIZE, food_position[1] * CELL_SIZE))
+    if food:
+        position, is_golden = food
+        image = GOLDEN_FOOD_IMAGE if is_golden else FOOD_IMAGE
+        window.blit(image, (position[0] * CELL_SIZE, position[1] * CELL_SIZE))
 
-def draw_score(score, high_score):
-    """Draw the current score and high score on the screen."""
+def draw_score(score, high_score, game_speed):
+    """Draw the current score, high score, and speed on the screen."""
     font = pygame.font.Font(None, 36)
     score_text = font.render(f"Score: {score}", True, WHITE)
     high_score_text = font.render(f"High Score: {high_score}", True, WHITE)
+    speed_text = font.render(f"Speed: {game_speed}", True, WHITE)
     window.blit(score_text, (10, 10))
     window.blit(high_score_text, (10, 50))
+    window.blit(speed_text, (10, 90))
+
+def flash_screen():
+    """Flash the screen briefly when food is eaten."""
+    flash_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+    flash_surface.fill(FLASH_COLOR)
+    window.blit(flash_surface, (0, 0))
+    pygame.display.flip()
+    pygame.time.wait(50)  # Brief flash duration
 
 def start_screen():
     """Display the start screen with instructions and start button."""
@@ -192,11 +207,10 @@ def start_screen():
         "Press + or = to increase speed",
         "Press - to decrease speed",
         "Press P to pause/resume",
-        "Eat apples to grow and score points"
+        "Eat apples (1 pt) or golden apples (5 pts)"
     ]
     instruction_texts = [button_font.render(text, True, WHITE) for text in instructions]
     
-    # Start button
     button_width, button_height = 200, 60
     button_x = WINDOW_WIDTH // 2 - button_width // 2
     button_y = WINDOW_HEIGHT // 2 + 100
@@ -204,7 +218,6 @@ def start_screen():
     start_text = button_font.render("Start", True, WHITE)
     start_text_rect = start_text.get_rect(center=button_rect.center)
     
-    # Draw start screen
     window.fill(BLACK)
     window.blit(title_text, (WINDOW_WIDTH // 2 - 150, 50))
     for i, text in enumerate(instruction_texts):
@@ -213,7 +226,6 @@ def start_screen():
     window.blit(start_text, start_text_rect)
     pygame.display.flip()
     
-    # Wait for user to start
     waiting = True
     while waiting:
         for event in pygame.event.get():
@@ -228,13 +240,11 @@ def game_over_screen(score, high_score):
     font = pygame.font.Font(None, 72)
     button_font = pygame.font.Font(None, 48)
     
-    # Text
     game_over_text = font.render("Game Over", True, RED)
     score_text = font.render(f"Score: {score}", True, WHITE)
     high_score_text = font.render(f"High Score: {high_score}", True, WHITE)
     restart_text = font.render("Press R to Restart", True, WHITE)
     
-    # Quit button
     button_width, button_height = 200, 60
     button_x = WINDOW_WIDTH // 2 - button_width // 2
     button_y = WINDOW_HEIGHT // 2 + 250
@@ -242,18 +252,19 @@ def game_over_screen(score, high_score):
     quit_text = button_font.render("Quit", True, WHITE)
     quit_text_rect = quit_text.get_rect(center=button_rect.center)
     
-    # Draw everything
-    window.blit(game_over_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 - 150))
-    window.blit(score_text, (WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 - 50))
-    window.blit(high_score_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 + 50))
-    window.blit(restart_text, (WINDOW_WIDTH // 2 - 200, WINDOW_HEIGHT // 2 + 150))
-    pygame.draw.rect(window, RED, button_rect)
-    window.blit(quit_text, quit_text_rect)
-    pygame.display.flip()
-    
-    # Event loop
     waiting = True
     while waiting:
+        mouse_pos = pygame.mouse.get_pos()
+        button_color = (200, 0, 0) if button_rect.collidepoint(mouse_pos) else RED  # Hover effect
+        
+        window.blit(game_over_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 - 150))
+        window.blit(score_text, (WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 - 50))
+        window.blit(high_score_text, (WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 + 50))
+        window.blit(restart_text, (WINDOW_WIDTH // 2 - 200, WINDOW_HEIGHT // 2 + 150))
+        pygame.draw.rect(window, button_color, button_rect)
+        window.blit(quit_text, quit_text_rect)
+        pygame.display.flip()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
@@ -263,15 +274,15 @@ def game_over_screen(score, high_score):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if button_rect.collidepoint(event.pos):
                     return False
-    return False
 
 def main():
     """Main function to run the Snake game."""
-    start_screen()  # Show start screen before starting the game
+    start_screen()
     while True:
-        game_speed = 1  # Fixed initial speed (adjustable in-game)
+        game_speed = 1
         snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
         direction = (1, 0)
+        next_direction = direction  # Input buffer for smoother movement
         food = generate_food(snake_body)
         if food is None:
             print("Error: Could not generate food position")
@@ -289,13 +300,13 @@ def main():
                         paused = not paused
                     if not paused:
                         if event.key == pygame.K_UP and direction != (0, 1):
-                            direction = (0, -1)
+                            next_direction = (0, -1)
                         elif event.key == pygame.K_DOWN and direction != (0, -1):
-                            direction = (0, 1)
+                            next_direction = (0, 1)
                         elif event.key == pygame.K_LEFT and direction != (1, 0):
-                            direction = (-1, 0)
+                            next_direction = (-1, 0)
                         elif event.key == pygame.K_RIGHT and direction != (-1, 0):
-                            direction = (1, 0)
+                            next_direction = (1, 0)
                         elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
                             game_speed = min(game_speed + 1, 20)
                         elif event.key == pygame.K_MINUS:
@@ -308,6 +319,7 @@ def main():
                 pygame.display.flip()
                 continue
             
+            direction = next_direction
             new_head = (snake_body[0][0] + direction[0], snake_body[0][1] + direction[1])
             if (new_head in snake_body or
                 new_head[0] < 0 or new_head[0] >= GRID_WIDTH or
@@ -316,10 +328,11 @@ def main():
                     GAME_OVER_SOUND.play()
                 running = False
             snake_body.insert(0, new_head)
-            if new_head == food:
-                score += 1
+            if food and new_head == food[0]:
+                score += 5 if food[1] else 1  # Golden apple = 5 points, regular = 1
                 if EAT_SOUND:
                     EAT_SOUND.play()
+                flash_screen()
                 food = generate_food(snake_body)
                 if score > high_score:
                     high_score = score
@@ -328,7 +341,7 @@ def main():
             draw_background()
             draw_snake(snake_body, direction)
             draw_food(food)
-            draw_score(score, high_score)
+            draw_score(score, high_score, game_speed)
             pygame.display.flip()
             clock.tick(5 + game_speed * 2)
         save_high_score(high_score)
