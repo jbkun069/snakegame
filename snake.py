@@ -17,6 +17,7 @@ GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 GRASS_GREEN = (34, 139, 34)
 GRASS_GREEN_DARK = (0, 100, 0)
+GRID_COLOR = (200, 200, 200)  # Light gray for grid lines
 
 # Initialize Pygame
 pygame.init()
@@ -57,6 +58,15 @@ TAIL_IMAGES = {
     direction: load_and_scale_image(os.path.join('assets', f'tail_{direction}.png'), CELL_SIZE)
     for direction in HEAD_DIRECTIONS
 }
+
+# Load sound effects
+try:
+    EAT_SOUND = pygame.mixer.Sound(os.path.join('assets', 'eat.wav'))
+    GAME_OVER_SOUND = pygame.mixer.Sound(os.path.join('assets', 'game_over.wav'))
+except pygame.error as e:
+    print(f"Error loading sound: {e}")
+    EAT_SOUND = None
+    GAME_OVER_SOUND = None
 
 # Create grass pattern
 def create_grass_tile():
@@ -107,8 +117,13 @@ def generate_food(snake_body):
     return None
 
 def draw_background():
-    """Draw the grass pattern background."""
+    """Draw the grass pattern background with grid overlay."""
     window.blit(GRASS_PATTERN, (0, 0))
+    # Draw grid lines
+    for x in range(0, WINDOW_WIDTH, CELL_SIZE):
+        pygame.draw.line(window, GRID_COLOR, (x, 0), (x, WINDOW_HEIGHT))
+    for y in range(0, WINDOW_HEIGHT, CELL_SIZE):
+        pygame.draw.line(window, GRID_COLOR, (0, y), (WINDOW_WIDTH, y))
 
 def get_direction_name(direction):
     """Convert direction tuple to string name."""
@@ -167,6 +182,47 @@ def draw_score(score, high_score):
     window.blit(score_text, (10, 10))
     window.blit(high_score_text, (10, 50))
 
+def start_screen():
+    """Display the start screen with instructions and start button."""
+    font = pygame.font.Font(None, 72)
+    button_font = pygame.font.Font(None, 48)
+    title_text = font.render("Snake Game", True, WHITE)
+    instructions = [
+        "Use arrow keys to move",
+        "Press + or = to increase speed",
+        "Press - to decrease speed",
+        "Press P to pause/resume",
+        "Eat apples to grow and score points"
+    ]
+    instruction_texts = [button_font.render(text, True, WHITE) for text in instructions]
+    
+    # Start button
+    button_width, button_height = 200, 60
+    button_x = WINDOW_WIDTH // 2 - button_width // 2
+    button_y = WINDOW_HEIGHT // 2 + 100
+    button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+    start_text = button_font.render("Start", True, WHITE)
+    start_text_rect = start_text.get_rect(center=button_rect.center)
+    
+    # Draw start screen
+    window.fill(BLACK)
+    window.blit(title_text, (WINDOW_WIDTH // 2 - 150, 50))
+    for i, text in enumerate(instruction_texts):
+        window.blit(text, (WINDOW_WIDTH // 2 - 200, 150 + i * 40))
+    pygame.draw.rect(window, GREEN, button_rect)
+    window.blit(start_text, start_text_rect)
+    pygame.display.flip()
+    
+    # Wait for user to start
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN or (event.type == pygame.MOUSEBUTTONDOWN and button_rect.collidepoint(event.pos)):
+                waiting = False
+
 def game_over_screen(score, high_score):
     """Display game over screen with restart and quit options."""
     font = pygame.font.Font(None, 72)
@@ -211,8 +267,9 @@ def game_over_screen(score, high_score):
 
 def main():
     """Main function to run the Snake game."""
+    start_screen()  # Show start screen before starting the game
     while True:
-        game_speed = 2  # Fixed initial speed (adjustable in-game)
+        game_speed = 1  # Fixed initial speed (adjustable in-game)
         snake_body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
         direction = (1, 0)
         food = generate_food(snake_body)
@@ -222,31 +279,47 @@ def main():
         score = 0
         high_score = load_high_score()
         running = True
+        paused = False
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP and direction != (0, 1):
-                        direction = (0, -1)
-                    elif event.key == pygame.K_DOWN and direction != (0, -1):
-                        direction = (0, 1)
-                    elif event.key == pygame.K_LEFT and direction != (1, 0):
-                        direction = (-1, 0)
-                    elif event.key == pygame.K_RIGHT and direction != (-1, 0):
-                        direction = (1, 0)
-                    elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
-                        game_speed = min(game_speed + 1, 20)
-                    elif event.key == pygame.K_MINUS:
-                        game_speed = max(game_speed - 1, 1)
+                    if event.key == pygame.K_p:
+                        paused = not paused
+                    if not paused:
+                        if event.key == pygame.K_UP and direction != (0, 1):
+                            direction = (0, -1)
+                        elif event.key == pygame.K_DOWN and direction != (0, -1):
+                            direction = (0, 1)
+                        elif event.key == pygame.K_LEFT and direction != (1, 0):
+                            direction = (-1, 0)
+                        elif event.key == pygame.K_RIGHT and direction != (-1, 0):
+                            direction = (1, 0)
+                        elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
+                            game_speed = min(game_speed + 1, 20)
+                        elif event.key == pygame.K_MINUS:
+                            game_speed = max(game_speed - 1, 1)
+            
+            if paused:
+                font = pygame.font.Font(None, 72)
+                pause_text = font.render("Paused", True, WHITE)
+                window.blit(pause_text, (WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 - 50))
+                pygame.display.flip()
+                continue
+            
             new_head = (snake_body[0][0] + direction[0], snake_body[0][1] + direction[1])
             if (new_head in snake_body or
                 new_head[0] < 0 or new_head[0] >= GRID_WIDTH or
                 new_head[1] < 0 or new_head[1] >= GRID_HEIGHT):
+                if GAME_OVER_SOUND:
+                    GAME_OVER_SOUND.play()
                 running = False
             snake_body.insert(0, new_head)
             if new_head == food:
                 score += 1
+                if EAT_SOUND:
+                    EAT_SOUND.play()
                 food = generate_food(snake_body)
                 if score > high_score:
                     high_score = score
