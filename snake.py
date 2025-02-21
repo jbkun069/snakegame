@@ -1,5 +1,5 @@
 import pygame  # type: ignore
-import pygame_gui  # Added for UI enhancements
+import pygame_gui  # type: ignore # Added for UI enhancements
 import random
 import os
 
