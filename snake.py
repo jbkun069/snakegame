@@ -304,6 +304,19 @@ def game_over_screen(score, high_score):
         pygame.display.flip()
     return False
 
+def countdown_animation():
+    """Display a countdown animation before the game starts."""
+    font = pygame.font.Font(None, 120)
+    draw_background()
+    
+    for count in range(3, 0, -1):
+        window.blit(GRASS_PATTERN, (0, 0))
+        count_text = font.render(str(count), True, WHITE)
+        text_rect = count_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
+        window.blit(count_text, text_rect)
+        pygame.display.flip()
+        pygame.time.wait(700)  # 0.7 seconds per number
+
 def main():
     """Main function to run the Snake game."""
     start_screen()
@@ -318,6 +331,10 @@ def main():
             return
         score = 0
         high_score = load_high_score()
+        
+        # Add countdown animation before game starts
+        countdown_animation()
+        
         running = True
         paused = False
         while running:
