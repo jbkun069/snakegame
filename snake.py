@@ -287,13 +287,15 @@ def game_over_screen(score, high_score):
     window.fill(BLACK)
     time_delta = clock.tick(60) / 1000.0
     waiting = True
+    restart_chosen = False
     while waiting:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
             if event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == restart_button:
-                    return True
+                    restart_chosen = True
+                    waiting = False
                 if event.ui_element == quit_button:
                     return False
             ui_manager.process_events(event)
@@ -302,7 +304,11 @@ def game_over_screen(score, high_score):
         window.fill(BLACK)  # Redraw background each frame
         ui_manager.draw_ui(window)
         pygame.display.flip()
-    return False
+    
+    # Add countdown if restarting
+    if restart_chosen:
+        countdown_animation()
+    return restart_chosen
 
 def countdown_animation():
     """Display a countdown animation before the game starts."""
