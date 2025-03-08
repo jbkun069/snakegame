@@ -2,6 +2,7 @@ import pygame  # type: ignore
 import pygame_gui  # type: ignore # Added for UI enhancements
 import random
 import os
+import math
 
 # Constants
 GRID_WIDTH = 20
@@ -316,12 +317,45 @@ def countdown_animation():
     draw_background()
     
     for count in range(3, 0, -1):
+        # Draw background for each frame
         window.blit(GRASS_PATTERN, (0, 0))
-        count_text = font.render(str(count), True, WHITE)
+        
+        # Create a pulsing effect by changing size
+        pulse_size = int(120 + 20 * abs(math.sin(pygame.time.get_ticks() * 0.005)))
+        count_font = pygame.font.Font(None, pulse_size)
+        
+        # Animate color from red to green
+        color_ratio = count / 3  # 1/3, 2/3, 1
+        r = int(255 * (1 - color_ratio))
+        g = int(255 * color_ratio)
+        count_color = (r, g, 0)
+        
+        count_text = count_font.render(str(count), True, count_color)
         text_rect = count_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
+        
+        # Draw a glowing circle behind the number
+        glow_radius = 70 + 10 * abs(math.sin(pygame.time.get_ticks() * 0.01))
+        glow_color = (r, g, 0, 100)
+        glow_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+        pygame.draw.circle(glow_surface, glow_color, 
+                          (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2), 
+                          glow_radius)
+        window.blit(glow_surface, (0, 0))
+        
+        # Draw the number
         window.blit(count_text, text_rect)
         pygame.display.flip()
         pygame.time.wait(700)  # 0.7 seconds per number
+    
+    # "GO!" message at the end
+    go_font = pygame.font.Font(None, 150)
+    go_text = go_font.render("GO!", True, (0, 255, 0))
+    go_rect = go_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
+    
+    window.blit(GRASS_PATTERN, (0, 0))
+    window.blit(go_text, go_rect)
+    pygame.display.flip()
+    pygame.time.wait(500)  # Show "GO!" for half a second
 
 def main():
     """Main function to run the Snake game."""
