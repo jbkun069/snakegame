@@ -3,6 +3,7 @@ import pygame_gui  # type: ignore # Added for UI enhancements
 import random
 import os
 import math
+from typing import Optional, Tuple, List
 
 # Constants
 GRID_WIDTH = 20
@@ -113,7 +114,7 @@ def save_high_score(score):
     except IOError:
         pass
 
-def generate_food(snake_body):
+def generate_food(snake_body: List[Tuple[int, int]]) -> Optional[Tuple[Tuple[int, int], bool]]:
     """Generate food at a random position not occupied by the snake."""
     max_attempts = 1000
     attempts = 0
@@ -133,7 +134,7 @@ def draw_background():
     for y in range(0, WINDOW_HEIGHT, CELL_SIZE):
         pygame.draw.line(window, GRID_COLOR, (0, y), (WINDOW_WIDTH, y))
 
-def get_direction_name(direction):
+def get_direction_name(direction: Tuple[int, int]) -> str:
     """Convert direction tuple to string name."""
     if direction == (0, -1): return 'up'
     if direction == (0, 1): return 'down'
